@@ -1,22 +1,24 @@
 require_relative 'environment'
 
 class Bird
-  attr_reader :position, :velocity
+  attr_reader :y, :x, :vertical_speed
 
   def initialize
-    @position = 10  # Starting height
-    @velocity = 0   # Initial velocity
+    @y = Environment::STARTING_Y  # Starting height (middle of screen)
+    @x = Environment::STARTING_X  # Starting horizontal position
+    @vertical_speed = 0   # Initial vertical speed
     @wing_state = :up
     @wing_timer = 0
   end
 
   def update
-    @velocity += Environment::GRAVITY
-    @position += @velocity
+    # Vertical movement
+    @vertical_speed += Environment::GRAVITY
+    @y += @vertical_speed
 
     # Keep bird within screen bounds
-    @position = Environment::CEILING_LEVEL if @position < Environment::CEILING_LEVEL
-    @position = Environment::GROUND_LEVEL if @position > Environment::GROUND_LEVEL
+    @y = Environment::CEILING_LEVEL if @y < Environment::CEILING_LEVEL
+    @y = Environment::GROUND_LEVEL if @y > Environment::GROUND_LEVEL
 
     # Update wing animation
     if @wing_timer > 0
@@ -27,7 +29,7 @@ class Bird
   end
 
   def jump
-    @velocity = Environment::JUMP_FORCE
+    @vertical_speed = Environment::JUMP_FORCE
     @wing_state = :down
     @wing_timer = 3  # Keep wings down for 3 frames after jump
   end

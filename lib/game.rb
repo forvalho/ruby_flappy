@@ -1,11 +1,16 @@
 require_relative 'bird'
 require_relative 'environment'
+require_relative 'obstacle'
 require 'curses'
 
 class Game
+  attr_reader :obstacles, :last_obstacle_x
+
   def initialize
     @bird = Bird.new
+    @obstacles = []
     @running = true
+    @last_obstacle_x = Environment::SCREEN_WIDTH
   end
 
   def run
@@ -62,6 +67,21 @@ class Game
 
   def update
     @bird.update
+    update_obstacles
+    maybe_add_obstacle
+  end
+
+  def update_obstacles
+    @obstacles.each(&:update)
+    @obstacles.reject! { |obs| obs.x < 0 }  # Remove obstacles that are off screen
+  end
+
+  def maybe_add_obstacle
+    rightmost_x = @obstacles.map(&:x).max || -Float::INFINITY
+    if @obstacles.empty? || (Environment::SCREEN_WIDTH - rightmost_x >= rand(3..10))
+      @obstacles << Obstacle.new(Environment::SCREEN_WIDTH, Environment::CEILING_LEVEL)
+      @obstacles << Obstacle.new(Environment::SCREEN_WIDTH, Environment::GROUND_LEVEL)
+    end
   end
 
   def draw
@@ -82,9 +102,16 @@ class Game
     @window.setpos(Environment::GROUND_LEVEL + 1, 0)
     @window.addstr(' ' * (Environment::SCREEN_WIDTH * (Environment::SCREEN_HEIGHT - Environment::GROUND_LEVEL - 1)))
 
+    # Draw obstacles
+    @window.attron(Curses.color_pair(2))  # Use green for obstacles
+    @obstacles.each do |obstacle|
+      @window.setpos(obstacle.y, obstacle.x)
+      @window.addstr(obstacle.to_s)
+    end
+
     # Draw bird (on top of everything)
     @window.attron(Curses.color_pair(1))  # Reset to sky color for bird
-    @window.setpos(@bird.position, 10)
+    @window.setpos(@bird.y, @bird.x)
     @window.addstr(@bird.to_s)
 
     @window.refresh
