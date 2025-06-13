@@ -12,6 +12,7 @@ class Game
     @running = true
     @last_obstacle_x = Environment::SCREEN_WIDTH
     @lives = 3  # Start with 3 lives
+    @points = 0  # Start with 0 points
   end
 
   def reset_game
@@ -78,6 +79,7 @@ class Game
     @bird.update
     update_obstacles
     maybe_add_obstacle
+    check_points
 
     # Collision detection
     if @bird.y <= Environment::CEILING_LEVEL || @bird.y >= Environment::GROUND_LEVEL
@@ -105,6 +107,17 @@ class Game
     rightmost_x = @obstacles.map(&:right_edge).max || -Float::INFINITY
     if @obstacles.empty? || (Environment::SCREEN_WIDTH - rightmost_x >= rand(Environment::OBSTACLE_MIN_SPACING..Environment::OBSTACLE_MAX_SPACING))
       @obstacles << Obstacle.create_pair(Environment::SCREEN_WIDTH)
+    end
+  end
+
+  def check_points
+    @obstacles.each do |obstacle|
+      # Check if bird's leftmost hitbox position has passed the obstacle
+      if @bird.hitbox_x.first > obstacle.right_edge
+        @points += 1
+        # Remove the obstacle to avoid counting it again
+        @obstacles.delete(obstacle)
+      end
     end
   end
 
@@ -157,6 +170,11 @@ class Game
     @window.attron(Curses.color_pair(1))  # Sky color for bird
     @window.setpos(@bird.y, @bird.x)
     @window.addstr(@bird.to_s)
+
+    # Draw points in top left corner
+    @window.attron(Curses.color_pair(4))  # White on black
+    @window.setpos(1, 1)  # 1 block from top and left edges
+    @window.addstr(@points.to_s)
 
     # Draw lives in top right corner
     @window.attron(Curses.color_pair(4))  # White on black

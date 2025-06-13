@@ -104,4 +104,70 @@ RSpec.describe Game do
       expect(game.instance_variable_get(:@lives)).to eq(2)
     end
   end
+
+  describe 'scoring system' do
+    it 'starts with 0 points' do
+      expect(game.instance_variable_get(:@points)).to eq(0)
+    end
+
+    it 'increments points when bird clears an obstacle' do
+      # Add an obstacle
+      obstacle = Obstacle.create_pair(Environment::SCREEN_WIDTH / 2)
+      game.obstacles << obstacle
+
+      # Position bird to clear the obstacle
+      bird = game.instance_variable_get(:@bird)
+      bird.instance_variable_set(:@x, obstacle.right_edge + 1)
+
+      # Update game to check points
+      game.send(:update)
+      expect(game.instance_variable_get(:@points)).to eq(1)
+    end
+
+    it 'removes obstacle after scoring' do
+      # Add an obstacle
+      obstacle = Obstacle.create_pair(Environment::SCREEN_WIDTH / 2)
+      game.obstacles << obstacle
+
+      # Position bird to clear the obstacle
+      bird = game.instance_variable_get(:@bird)
+      bird.instance_variable_set(:@x, obstacle.right_edge + 1)
+
+      # Update game to check points
+      game.send(:update)
+      expect(game.obstacles).not_to include(obstacle)
+    end
+
+    it 'does not increment points if bird has not cleared obstacle' do
+      # Add an obstacle
+      obstacle = Obstacle.create_pair(Environment::SCREEN_WIDTH / 2)
+      game.obstacles << obstacle
+
+      # Position bird before the obstacle
+      bird = game.instance_variable_get(:@bird)
+      bird.instance_variable_set(:@x, obstacle.x - 1)
+
+      # Update game to check points
+      game.send(:update)
+      expect(game.instance_variable_get(:@points)).to eq(0)
+    end
+
+    it 'persists points across lives' do
+      # Add an obstacle and score a point
+      obstacle = Obstacle.create_pair(Environment::SCREEN_WIDTH / 2)
+      game.obstacles << obstacle
+      bird = game.instance_variable_get(:@bird)
+      bird.instance_variable_set(:@x, obstacle.right_edge + 1)
+      game.send(:update)
+      expect(game.instance_variable_get(:@points)).to eq(1)
+
+      # Trigger a collision to lose a life
+      bird.instance_variable_set(:@y, Environment::CEILING_LEVEL - 1)  # Position just above ceiling
+      game.send(:update)
+
+      # Points should remain the same after losing a life
+      expect(game.instance_variable_get(:@points)).to eq(1)
+      expect(game.instance_variable_get(:@lives)).to eq(2)
+    end
+  end
 end
