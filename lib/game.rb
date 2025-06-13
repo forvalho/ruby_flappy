@@ -16,6 +16,16 @@ class Game
     Curses.stdscr.keypad(true)  # Enable keypad mode for special keys
     Curses.curs_set(0)     # Hide the cursor (0 = invisible, 1 = normal, 2 = very visible)
 
+    # Initialize colors
+    Curses.start_color
+    # Define color pairs:
+    # 1: White on light blue (sky)
+    # 2: Black on green (ground)
+    # 3: White on brown (below ground)
+    Curses.init_pair(1, Curses::COLOR_WHITE, Curses::COLOR_CYAN)    # Sky
+    Curses.init_pair(2, Curses::COLOR_BLACK, Curses::COLOR_GREEN)   # Ground
+    Curses.init_pair(3, Curses::COLOR_WHITE, Curses::COLOR_YELLOW)  # Below ground (using yellow as brown)
+
     # Set up the game window
     @window = Curses::Window.new(
       Environment::SCREEN_HEIGHT,
@@ -56,12 +66,26 @@ class Game
 
   def draw
     @window.clear
+
+    # Draw sky (light blue background)
+    @window.attron(Curses.color_pair(1))
+    @window.setpos(0, 0)
+    @window.addstr(' ' * (Environment::SCREEN_WIDTH * Environment::GROUND_LEVEL))
+
+    # Draw ground (green)
+    @window.attron(Curses.color_pair(2))
+    @window.setpos(Environment::GROUND_LEVEL, 0)
+    @window.addstr(' ' * Environment::SCREEN_WIDTH)
+
+    # Draw below ground (brown)
+    @window.attron(Curses.color_pair(3))
+    @window.setpos(Environment::GROUND_LEVEL + 1, 0)
+    @window.addstr(' ' * (Environment::SCREEN_WIDTH * (Environment::SCREEN_HEIGHT - Environment::GROUND_LEVEL - 1)))
+
+    # Draw bird (on top of everything)
+    @window.attron(Curses.color_pair(1))  # Reset to sky color for bird
     @window.setpos(@bird.position, 10)
     @window.addstr(@bird.to_s)
-
-    # Draw ground
-    @window.setpos(Environment::GROUND_LEVEL + 1, 0)
-    @window.addstr('=' * Environment::SCREEN_WIDTH)
 
     @window.refresh
   end
