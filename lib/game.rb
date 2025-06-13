@@ -171,14 +171,14 @@ class Game
     @window.setpos(@bird.y, @bird.x)
     @window.addstr(@bird.to_s)
 
-    # Draw points in top left corner
+    # Draw points in bottom left corner
     @window.attron(Curses.color_pair(4))  # White on black
-    @window.setpos(1, 1)  # 1 block from top and left edges
+    @window.setpos(Environment::SCREEN_HEIGHT - 2, 1)  # 1 block from bottom and left edges
     @window.addstr(@points.to_s)
 
-    # Draw lives in top right corner
+    # Draw lives in bottom right corner
     @window.attron(Curses.color_pair(4))  # White on black
-    @window.setpos(1, Environment::SCREEN_WIDTH - 2)  # 1 block from top and right edges
+    @window.setpos(Environment::SCREEN_HEIGHT - 2, Environment::SCREEN_WIDTH - 2)  # 1 block from bottom and right edges
     @window.addstr(@lives.to_s)
 
     @window.refresh
