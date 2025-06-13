@@ -14,9 +14,20 @@ class Game
     @lives = 3  # Start with 3 lives
     @points = 0  # Start with 0 points
     @countdown = 3  # Start with 3 seconds countdown
+    @game_over = false  # Add game over state
   end
 
   def reset_game
+    @bird = Bird.new
+    @obstacles = []
+    @last_obstacle_x = Environment::SCREEN_WIDTH
+    @countdown = 3  # Reset countdown to 3 seconds
+    @game_over = false  # Reset game over state
+    @points = 0  # Reset points
+    @lives = 3  # Reset lives
+  end
+
+  def reset_after_death
     @bird = Bird.new
     @obstacles = []
     @last_obstacle_x = Environment::SCREEN_WIDTH
@@ -38,7 +49,7 @@ class Game
     # 2: Black on green (ground)
     # 3: White on brown (below ground)
     # 4: White on black (lives display)
-    Curses.init_pair(1, Curses::COLOR_WHITE, Curses::COLOR_CYAN)    # Sky
+    Curses.init_pair(1, Curses::COLOR_BLACK, Curses::COLOR_CYAN)    # Sky
     Curses.init_pair(2, Curses::COLOR_BLACK, Curses::COLOR_GREEN)   # Ground
     Curses.init_pair(3, Curses::COLOR_WHITE, Curses::COLOR_YELLOW)  # Below ground (using yellow as brown)
     Curses.init_pair(4, Curses::COLOR_WHITE, Curses::COLOR_BLACK)   # Lives display
@@ -81,12 +92,16 @@ class Game
     when 'q'
       @running = false
     when ' '
-      @bird.jump
+      if @game_over
+        reset_game
+      else
+        @bird.jump
+      end
     end
   end
 
   def update
-    return if @countdown  # Don't update game state during countdown
+    return if @countdown || @game_over
 
     @bird.update
     update_obstacles
@@ -104,9 +119,9 @@ class Game
   def handle_collision
     @lives -= 1
     if @lives <= 0
-      @running = false
+      @game_over = true
     else
-      reset_game
+      reset_after_death
     end
   end
 
@@ -154,55 +169,80 @@ class Game
       @window.addstr(' ' * Environment::SCREEN_WIDTH)
     end
 
-    # Draw obstacles
-    @window.attron(Curses.color_pair(2))  # Use green for obstacles
-    @obstacles.each do |obstacle|
-      # Only draw if the obstacle is within screen bounds
-      next if obstacle.x >= Environment::SCREEN_WIDTH || obstacle.right_edge <= 0
-
-      # Calculate visible width (in case obstacle is partially off screen)
-      visible_width = [Environment::OBSTACLE_WIDTH, Environment::SCREEN_WIDTH - obstacle.x].min
-      next if visible_width <= 0
-
-      # Draw top obstacle (from row 0 down for top_height rows)
-      obstacle.top_height.times do |i|
-        @window.setpos(i, obstacle.x)
-        @window.addstr('#' * visible_width)
-      end
-
-      # Draw bottom obstacle (from just above ground line, extending upward)
-      obstacle.bottom_height.times do |i|
-        row = Environment::GROUND_VISUAL_LEVEL - i - 1
-        @window.setpos(row, obstacle.x)
-        @window.addstr('#' * visible_width)
-      end
-    end
-
-    # Draw bird (on top of everything)
-    @window.attron(Curses.color_pair(1))  # Sky color for bird
-    @window.setpos(@bird.y, @bird.x)
-    @window.addstr(@bird.to_s)
-
-    # Draw points in bottom left corner
-    @window.attron(Curses.color_pair(4))  # White on black
-    @window.setpos(Environment::SCREEN_HEIGHT - 2, 1)  # 1 block from bottom and left edges
-    @window.addstr(@points.to_s)
-
-    # Draw lives in bottom right corner
-    @window.attron(Curses.color_pair(4))  # White on black
-    @window.setpos(Environment::SCREEN_HEIGHT - 2, Environment::SCREEN_WIDTH - 2)  # 1 block from bottom and right edges
-    @window.addstr(@lives.to_s)
-
-    # Draw countdown if active
-    if @countdown
-      # Draw black box for countdown
-      countdown_y = Environment::SCREEN_HEIGHT / 2
-      countdown_x = Environment::SCREEN_WIDTH / 2 - 1
+    if @game_over
+      # Draw game over screen
       @window.attron(Curses.color_pair(4))  # White on black
-      @window.setpos(countdown_y, countdown_x)
-      @window.addstr(' ' * 3)  # Black box background
-      @window.setpos(countdown_y, countdown_x + 1)
-      @window.addstr(@countdown.to_s)
+
+      game_over_y = Environment::SCREEN_HEIGHT / 2 - 2
+      game_over_x = Environment::SCREEN_WIDTH / 2 - 4
+      @window.setpos(game_over_y, game_over_x)
+      @window.addstr("GAME OVER")
+
+      points_text = "Score: #{@points}"
+      points_x = Environment::SCREEN_WIDTH / 2 - points_text.length / 2
+      @window.setpos(game_over_y + 1, points_x)
+      @window.addstr(points_text)
+
+      restart_text = "[SPACE] to play again"
+      restart_x = Environment::SCREEN_WIDTH / 2 - restart_text.length / 2
+      @window.setpos(game_over_y + 2, restart_x)
+      @window.addstr(restart_text)
+
+      quit_text = "[Q] to quit"
+      quit_x = Environment::SCREEN_WIDTH / 2 - quit_text.length / 2
+      @window.setpos(game_over_y + 3, quit_x)
+      @window.addstr(quit_text)
+    else
+      # Draw obstacles
+      @window.attron(Curses.color_pair(2))  # Use green for obstacles
+      @obstacles.each do |obstacle|
+        # Only draw if the obstacle is within screen bounds
+        next if obstacle.x >= Environment::SCREEN_WIDTH || obstacle.right_edge <= 0
+
+        # Calculate visible width (in case obstacle is partially off screen)
+        visible_width = [Environment::OBSTACLE_WIDTH, Environment::SCREEN_WIDTH - obstacle.x].min
+        next if visible_width <= 0
+
+        # Draw top obstacle (from row 0 down for top_height rows)
+        obstacle.top_height.times do |i|
+          @window.setpos(i, obstacle.x)
+          @window.addstr('#' * visible_width)
+        end
+
+        # Draw bottom obstacle (from just above ground line, extending upward)
+        obstacle.bottom_height.times do |i|
+          row = Environment::GROUND_VISUAL_LEVEL - i - 1
+          @window.setpos(row, obstacle.x)
+          @window.addstr('#' * visible_width)
+        end
+      end
+
+      # Draw bird (on top of everything)
+      @window.attron(Curses.color_pair(1))  # Sky color for bird
+      @window.setpos(@bird.y, @bird.x)
+      @window.addstr(@bird.to_s)
+
+      # Draw points in bottom left corner
+      @window.attron(Curses.color_pair(4))  # White on black
+      @window.setpos(Environment::SCREEN_HEIGHT - 2, 1)  # 1 block from bottom and left edges
+      @window.addstr(@points.to_s)
+
+      # Draw lives in bottom right corner
+      @window.attron(Curses.color_pair(4))  # White on black
+      @window.setpos(Environment::SCREEN_HEIGHT - 2, Environment::SCREEN_WIDTH - 2)  # 1 block from bottom and right edges
+      @window.addstr(@lives.to_s)
+
+      # Draw countdown if active
+      if @countdown
+        # Draw black box for countdown
+        countdown_y = Environment::SCREEN_HEIGHT / 2
+        countdown_x = Environment::SCREEN_WIDTH / 2 - 1
+        @window.attron(Curses.color_pair(4))  # White on black
+        @window.setpos(countdown_y, countdown_x)
+        @window.addstr(' ' * 3)  # Black box background
+        @window.setpos(countdown_y, countdown_x + 1)
+        @window.addstr(@countdown.to_s)
+      end
     end
 
     @window.refresh
