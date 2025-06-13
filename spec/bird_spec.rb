@@ -11,6 +11,10 @@ RSpec.describe Bird do
     it 'starts with zero velocity' do
       expect(bird.velocity).to eq(0)
     end
+
+    it 'starts with wings up' do
+      expect(bird.to_s).to eq('=^o>')
+    end
   end
 
   describe '#update' do
@@ -25,12 +29,29 @@ RSpec.describe Bird do
       bird.update
       expect(bird.position).to be > initial_position
     end
+
+    it 'keeps wings up when not jumping' do
+      bird.update
+      expect(bird.to_s).to eq('=^o>')
+    end
   end
 
   describe '#jump' do
     it 'sets velocity to jump force' do
       bird.jump
       expect(bird.velocity).to eq(-5)
+    end
+
+    it 'puts wings down when jumping' do
+      bird.jump
+      expect(bird.to_s).to eq('=vo>')
+    end
+
+    it 'returns wings to up position after animation timer' do
+      bird.jump
+      3.times { bird.update }  # Wait for wing timer to reach 0
+      bird.update              # One more update to actually change wing state
+      expect(bird.to_s).to eq('=^o>')
     end
   end
 end
