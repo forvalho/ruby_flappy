@@ -42,4 +42,10 @@ class Bird
       '=vo>'
     end
   end
+
+  # Returns the x-coordinates of the 3 rightmost characters (hitbox)
+  # The tail is immune to collisions
+  def hitbox_x
+    [@x + 1, @x + 2, @x + 3]
+  end
 end

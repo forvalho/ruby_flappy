@@ -35,4 +35,17 @@ class Obstacle
 
     Obstacle.new(x, top_height, bottom_height, spacing)
   end
+
+  # Returns true if the bird collides with this obstacle
+  def collides_with?(bird)
+    bird.hitbox_x.each do |bx|
+      # Check horizontal overlap
+      next unless bx >= @x && bx <= right_edge
+      # Check vertical overlap (top obstacle)
+      return true if bird.y < @top_height
+      # Check vertical overlap (bottom obstacle)
+      return true if bird.y > (Environment::GROUND_VISUAL_LEVEL - @bottom_height - 1)
+    end
+    false
+  end
 end

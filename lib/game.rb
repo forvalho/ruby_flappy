@@ -77,6 +77,13 @@ class Game
     @bird.update
     update_obstacles
     maybe_add_obstacle
+
+    # Collision detection
+    if @bird.y <= Environment::CEILING_LEVEL + 1 || @bird.y >= Environment::GROUND_LEVEL
+      @running = false
+    elsif @obstacles.any? { |obs| obs.collides_with?(@bird) }
+      @running = false
+    end
   end
 
   def update_obstacles
