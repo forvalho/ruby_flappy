@@ -11,14 +11,13 @@ class Game
     @obstacles = []
     @running = true
     @last_obstacle_x = Environment::SCREEN_WIDTH
+    @lives = 3  # Start with 3 lives
+  end
 
-    # Add initial obstacles from middle to right edge
-    x = Environment::SCREEN_WIDTH / 2
-    while x < Environment::SCREEN_WIDTH
-      obstacle = Obstacle.create_pair(x)
-      @obstacles << obstacle
-      x += obstacle.spacing + Environment::OBSTACLE_WIDTH
-    end
+  def reset_game
+    @bird = Bird.new
+    @obstacles = []
+    @last_obstacle_x = Environment::SCREEN_WIDTH
   end
 
   def run
@@ -35,9 +34,11 @@ class Game
     # 1: White on light blue (sky)
     # 2: Black on green (ground)
     # 3: White on brown (below ground)
+    # 4: White on black (lives display)
     Curses.init_pair(1, Curses::COLOR_WHITE, Curses::COLOR_CYAN)    # Sky
     Curses.init_pair(2, Curses::COLOR_BLACK, Curses::COLOR_GREEN)   # Ground
     Curses.init_pair(3, Curses::COLOR_WHITE, Curses::COLOR_YELLOW)  # Below ground (using yellow as brown)
+    Curses.init_pair(4, Curses::COLOR_WHITE, Curses::COLOR_BLACK)   # Lives display
 
     # Set up the game window
     @window = Curses::Window.new(
@@ -79,10 +80,19 @@ class Game
     maybe_add_obstacle
 
     # Collision detection
-    if @bird.y <= Environment::CEILING_LEVEL + 1 || @bird.y >= Environment::GROUND_LEVEL
-      @running = false
+    if @bird.y <= Environment::CEILING_LEVEL || @bird.y >= Environment::GROUND_LEVEL
+      handle_collision
     elsif @obstacles.any? { |obs| obs.collides_with?(@bird) }
+      handle_collision
+    end
+  end
+
+  def handle_collision
+    @lives -= 1
+    if @lives <= 0
       @running = false
+    else
+      reset_game
     end
   end
 
@@ -147,6 +157,11 @@ class Game
     @window.attron(Curses.color_pair(1))  # Sky color for bird
     @window.setpos(@bird.y, @bird.x)
     @window.addstr(@bird.to_s)
+
+    # Draw lives in top right corner
+    @window.attron(Curses.color_pair(4))  # White on black
+    @window.setpos(1, Environment::SCREEN_WIDTH - 2)  # 1 block from top and right edges
+    @window.addstr(@lives.to_s)
 
     @window.refresh
   end

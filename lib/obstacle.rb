@@ -44,7 +44,7 @@ class Obstacle
       # Check vertical overlap (top obstacle)
       return true if bird.y < @top_height
       # Check vertical overlap (bottom obstacle)
-      return true if bird.y > (Environment::GROUND_VISUAL_LEVEL - @bottom_height - 1)
+      return true if bird.y > (Environment::GROUND_LEVEL - @bottom_height - 1)
     end
     false
   end
