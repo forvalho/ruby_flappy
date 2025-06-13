@@ -1,20 +1,24 @@
+require_relative 'environment'
+
 class Bird
   attr_reader :position, :velocity
 
   def initialize
     @position = 10  # Starting height
     @velocity = 0   # Initial velocity
-    @gravity = 0.5  # Gravity constant
-    @jump_force = -5 # Jump force (negative because y increases downward)
   end
 
   def update
-    @velocity += @gravity
+    @velocity += Environment::GRAVITY
     @position += @velocity
+
+    # Keep bird within screen bounds
+    @position = Environment::CEILING_LEVEL if @position < Environment::CEILING_LEVEL
+    @position = Environment::GROUND_LEVEL if @position > Environment::GROUND_LEVEL
   end
 
   def jump
-    @velocity = @jump_force
+    @velocity = Environment::JUMP_FORCE
   end
 
   def to_s

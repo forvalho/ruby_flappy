@@ -1,4 +1,5 @@
 require_relative 'bird'
+require_relative 'environment'
 require 'curses'
 
 class Game
@@ -8,15 +9,25 @@ class Game
   end
 
   def run
-    Curses.init_screen
-    Curses.crmode
-    Curses.noecho
-    Curses.stdscr.keypad(true)
-    Curses.curs_set(0)  # Hide cursor
+    # Initialize the Curses screen
+    Curses.init_screen      # Start curses mode
+    Curses.crmode          # Set terminal to raw mode (no line buffering)
+    Curses.noecho          # Don't echo input characters
+    Curses.stdscr.keypad(true)  # Enable keypad mode for special keys
+    Curses.curs_set(0)     # Hide the cursor (0 = invisible, 1 = normal, 2 = very visible)
+
+    # Set up the game window
+    @window = Curses::Window.new(
+      Environment::SCREEN_HEIGHT,
+      Environment::SCREEN_WIDTH,
+      0, 0
+    )
+    @window.keypad(true)   # Enable keypad mode for the window
+    @window.timeout = 0    # Make getch non-blocking
 
     game_loop
   ensure
-    Curses.close_screen
+    Curses.close_screen    # Clean up curses before exiting
   end
 
   private
@@ -26,12 +37,12 @@ class Game
       handle_input
       update
       draw
-      sleep(0.1)  # Control game speed
+      sleep(Environment::FRAME_RATE)  # Control game speed using environment constant
     end
   end
 
   def handle_input
-    case Curses.getch
+    case @window.getch
     when 'q'
       @running = false
     when ' '
@@ -44,10 +55,15 @@ class Game
   end
 
   def draw
-    Curses.clear
-    Curses.setpos(@bird.position, 10)
-    Curses.addstr(@bird.to_s)
-    Curses.refresh
+    @window.clear
+    @window.setpos(@bird.position, 10)
+    @window.addstr(@bird.to_s)
+
+    # Draw ground
+    @window.setpos(Environment::GROUND_LEVEL + 1, 0)
+    @window.addstr('=' * Environment::SCREEN_WIDTH)
+
+    @window.refresh
   end
 end
 
