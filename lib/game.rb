@@ -13,12 +13,14 @@ class Game
     @last_obstacle_x = Environment::SCREEN_WIDTH
     @lives = 3  # Start with 3 lives
     @points = 0  # Start with 0 points
+    @countdown = 3  # Start with 3 seconds countdown
   end
 
   def reset_game
     @bird = Bird.new
     @obstacles = []
     @last_obstacle_x = Environment::SCREEN_WIDTH
+    @countdown = 3  # Reset countdown to 3 seconds
   end
 
   def run
@@ -60,7 +62,15 @@ class Game
   def game_loop
     while @running
       handle_input
-      update
+      if @countdown.nil?
+        update
+      else
+        sleep(1)  # Wait for 1 second
+        @countdown -= 1
+        if @countdown < 0
+          @countdown = nil  # End countdown
+        end
+      end
       draw
       sleep(Environment::FRAME_RATE)  # Control game speed using environment constant
     end
@@ -76,6 +86,8 @@ class Game
   end
 
   def update
+    return if @countdown  # Don't update game state during countdown
+
     @bird.update
     update_obstacles
     maybe_add_obstacle
@@ -180,6 +192,18 @@ class Game
     @window.attron(Curses.color_pair(4))  # White on black
     @window.setpos(Environment::SCREEN_HEIGHT - 2, Environment::SCREEN_WIDTH - 2)  # 1 block from bottom and right edges
     @window.addstr(@lives.to_s)
+
+    # Draw countdown if active
+    if @countdown
+      # Draw black box for countdown
+      countdown_y = Environment::SCREEN_HEIGHT / 2
+      countdown_x = Environment::SCREEN_WIDTH / 2 - 1
+      @window.attron(Curses.color_pair(4))  # White on black
+      @window.setpos(countdown_y, countdown_x)
+      @window.addstr(' ' * 3)  # Black box background
+      @window.setpos(countdown_y, countdown_x + 1)
+      @window.addstr(@countdown.to_s)
+    end
 
     @window.refresh
   end

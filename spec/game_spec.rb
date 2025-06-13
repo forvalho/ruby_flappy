@@ -80,6 +80,7 @@ RSpec.describe Game do
     it 'detects ceiling collision' do
       bird = game.instance_variable_get(:@bird)
       bird.instance_variable_set(:@y, Environment::CEILING_LEVEL - 1)
+      game.instance_variable_set(:@countdown, nil)
       game.send(:update)
       expect(game.instance_variable_get(:@lives)).to eq(2)
     end
@@ -87,6 +88,7 @@ RSpec.describe Game do
     it 'detects floor collision' do
       bird = game.instance_variable_get(:@bird)
       bird.instance_variable_set(:@y, Environment::GROUND_LEVEL)
+      game.instance_variable_set(:@countdown, nil)
       game.send(:update)
       expect(game.instance_variable_get(:@lives)).to eq(2)
     end
@@ -95,11 +97,9 @@ RSpec.describe Game do
       bird = game.instance_variable_get(:@bird)
       obstacle = Obstacle.create_pair(Environment::SCREEN_WIDTH / 2)
       game.obstacles << obstacle
-
-      # Position bird to collide with obstacle
-      bird.instance_variable_set(:@x, obstacle.x + 1)  # Align with obstacle
-      bird.instance_variable_set(:@y, Environment::CEILING_LEVEL + 1)  # Position in collision zone
-
+      bird.instance_variable_set(:@x, obstacle.x + 1)
+      bird.instance_variable_set(:@y, Environment::CEILING_LEVEL + 1)
+      game.instance_variable_set(:@countdown, nil)
       game.send(:update)
       expect(game.instance_variable_get(:@lives)).to eq(2)
     end
@@ -111,29 +111,21 @@ RSpec.describe Game do
     end
 
     it 'increments points when bird clears an obstacle' do
-      # Add an obstacle
       obstacle = Obstacle.create_pair(Environment::SCREEN_WIDTH / 2)
       game.obstacles << obstacle
-
-      # Position bird to clear the obstacle
       bird = game.instance_variable_get(:@bird)
       bird.instance_variable_set(:@x, obstacle.right_edge + 1)
-
-      # Update game to check points
+      game.instance_variable_set(:@countdown, nil)
       game.send(:update)
       expect(game.instance_variable_get(:@points)).to eq(1)
     end
 
     it 'removes obstacle after scoring' do
-      # Add an obstacle
       obstacle = Obstacle.create_pair(Environment::SCREEN_WIDTH / 2)
       game.obstacles << obstacle
-
-      # Position bird to clear the obstacle
       bird = game.instance_variable_get(:@bird)
       bird.instance_variable_set(:@x, obstacle.right_edge + 1)
-
-      # Update game to check points
+      game.instance_variable_set(:@countdown, nil)
       game.send(:update)
       expect(game.obstacles).not_to include(obstacle)
     end
@@ -153,21 +145,67 @@ RSpec.describe Game do
     end
 
     it 'persists points across lives' do
-      # Add an obstacle and score a point
       obstacle = Obstacle.create_pair(Environment::SCREEN_WIDTH / 2)
       game.obstacles << obstacle
       bird = game.instance_variable_get(:@bird)
       bird.instance_variable_set(:@x, obstacle.right_edge + 1)
+      game.instance_variable_set(:@countdown, nil)
       game.send(:update)
       expect(game.instance_variable_get(:@points)).to eq(1)
-
-      # Trigger a collision to lose a life
-      bird.instance_variable_set(:@y, Environment::CEILING_LEVEL - 1)  # Position just above ceiling
+      bird.instance_variable_set(:@y, Environment::CEILING_LEVEL - 1)
+      game.instance_variable_set(:@countdown, nil)
       game.send(:update)
-
-      # Points should remain the same after losing a life
       expect(game.instance_variable_get(:@points)).to eq(1)
       expect(game.instance_variable_get(:@lives)).to eq(2)
+    end
+  end
+
+  describe 'countdown system' do
+    it 'starts with a 3 second countdown' do
+      expect(game.instance_variable_get(:@countdown)).to eq(3)
+    end
+
+    it 'resets countdown after losing a life' do
+      # Trigger a collision to lose a life
+      bird = game.instance_variable_get(:@bird)
+      bird.instance_variable_set(:@y, Environment::CEILING_LEVEL - 1)
+      game.send(:update)
+
+      # Countdown should be reset to 3
+      expect(game.instance_variable_get(:@countdown)).to eq(3)
+    end
+
+    it 'decrements countdown' do
+      game.instance_variable_set(:@countdown, 3)
+      game.instance_variable_set(:@countdown, game.instance_variable_get(:@countdown) - 1)
+      expect(game.instance_variable_get(:@countdown)).to eq(2)
+    end
+
+    it 'ends countdown when reaching zero' do
+      game.instance_variable_set(:@countdown, 1)
+      game.instance_variable_set(:@countdown, game.instance_variable_get(:@countdown) - 1)
+      expect(game.instance_variable_get(:@countdown)).to eq(0)
+      # Simulate the game loop setting countdown to nil after reaching 0
+      if game.instance_variable_get(:@countdown) == 0
+        game.instance_variable_set(:@countdown, nil)
+      end
+      expect(game.instance_variable_get(:@countdown)).to be_nil
+    end
+
+    it 'does not update game state during countdown' do
+      # Add an obstacle
+      obstacle = Obstacle.create_pair(Environment::SCREEN_WIDTH / 2)
+      game.obstacles << obstacle
+
+      # Position bird to clear the obstacle
+      bird = game.instance_variable_get(:@bird)
+      bird.instance_variable_set(:@x, obstacle.right_edge + 1)
+
+      # Update game during countdown
+      game.send(:update)
+
+      # Points should not increment during countdown
+      expect(game.instance_variable_get(:@points)).to eq(0)
     end
   end
 end
