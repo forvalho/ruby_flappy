@@ -37,9 +37,9 @@ class Bird
   def to_s
     case @wing_state
     when :up
-      '=^o>'
+      '=^•>'
     when :down
-      '=vo>'
+      '=v•>'
     end
   end
 

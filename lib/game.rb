@@ -6,6 +6,24 @@ require 'curses'
 class Game
   attr_reader :obstacles, :last_obstacle_x
 
+  # Make handle_input public for testability
+  def handle_input(key = nil)
+    key ||= @window.getch
+    case key
+    when 'q'
+      @running = false
+    when ' '
+      if @game_over
+        reset_game
+      elsif @welcome_screen
+        @welcome_screen = false
+        @countdown = 3
+      else
+        @bird.jump
+      end
+    end
+  end
+
   def initialize
     @bird = Bird.new
     @obstacles = []
@@ -15,6 +33,7 @@ class Game
     @points = 0  # Start with 0 points
     @countdown = 3  # Start with 3 seconds countdown
     @game_over = false  # Add game over state
+    @welcome_screen = true  # Add welcome screen state
   end
 
   def reset_game
@@ -25,6 +44,7 @@ class Game
     @game_over = false  # Reset game over state
     @points = 0  # Reset points
     @lives = 3  # Reset lives
+    @welcome_screen = false  # Don't show welcome screen after reset
   end
 
   def reset_after_death
@@ -87,21 +107,8 @@ class Game
     end
   end
 
-  def handle_input
-    case @window.getch
-    when 'q'
-      @running = false
-    when ' '
-      if @game_over
-        reset_game
-      else
-        @bird.jump
-      end
-    end
-  end
-
   def update
-    return if @countdown || @game_over
+    return if @countdown || @game_over || @welcome_screen
 
     @bird.update
     update_obstacles
@@ -169,7 +176,25 @@ class Game
       @window.addstr(' ' * Environment::SCREEN_WIDTH)
     end
 
-    if @game_over
+    if @welcome_screen
+      # Draw welcome screen
+      @window.attron(Curses.color_pair(4))  # White on black
+
+      title_y = Environment::SCREEN_HEIGHT / 2 - 2
+      title_x = Environment::SCREEN_WIDTH / 2 - 5
+      @window.setpos(title_y, title_x)
+      @window.addstr("RUBY FLAPPY")
+
+      play_text = "[SPACE] to play"
+      play_x = Environment::SCREEN_WIDTH / 2 - play_text.length / 2
+      @window.setpos(title_y + 2, play_x)
+      @window.addstr(play_text)
+
+      quit_text = "[Q] to quit"
+      quit_x = Environment::SCREEN_WIDTH / 2 - quit_text.length / 2
+      @window.setpos(title_y + 3, quit_x)
+      @window.addstr(quit_text)
+    elsif @game_over
       # Draw game over screen
       @window.attron(Curses.color_pair(4))  # White on black
 
