@@ -11,6 +11,14 @@ class Game
     @obstacles = []
     @running = true
     @last_obstacle_x = Environment::SCREEN_WIDTH
+
+    # Add initial obstacles from middle to right edge
+    x = Environment::SCREEN_WIDTH / 2
+    while x < Environment::SCREEN_WIDTH
+      obstacle = Obstacle.create_pair(x)
+      @obstacles << obstacle
+      x += obstacle.spacing + Environment::OBSTACLE_WIDTH
+    end
   end
 
   def run
@@ -73,22 +81,21 @@ class Game
 
   def update_obstacles
     @obstacles.each(&:update)
-    @obstacles.reject! { |obs| obs.right_edge < 0 }  # Remove obstacles that are off screen
+    @obstacles.reject! { |obs| obs.right_edge <= 0 }  # Remove obstacles that are fully off screen
   end
 
   def maybe_add_obstacle
     rightmost_x = @obstacles.map(&:right_edge).max || -Float::INFINITY
-    if @obstacles.empty? || (Environment::SCREEN_WIDTH - rightmost_x >= Environment::OBSTACLE_SPACING)
+    if @obstacles.empty? || (Environment::SCREEN_WIDTH - rightmost_x >= rand(Environment::OBSTACLE_MIN_SPACING..Environment::OBSTACLE_MAX_SPACING))
       @obstacles << Obstacle.create_pair(Environment::SCREEN_WIDTH)
     end
   end
 
   def draw
+    # Clear the entire screen first
     @window.clear
-
-    # Draw sky (light blue background) from row 0 to just above the ground
-    @window.attron(Curses.color_pair(1))
-    (0...Environment::GROUND_VISUAL_LEVEL).each do |row|
+    @window.attron(Curses.color_pair(1))  # Sky color
+    (0...Environment::SCREEN_HEIGHT).each do |row|
       @window.setpos(row, 0)
       @window.addstr(' ' * Environment::SCREEN_WIDTH)
     end
@@ -108,22 +115,29 @@ class Game
     # Draw obstacles
     @window.attron(Curses.color_pair(2))  # Use green for obstacles
     @obstacles.each do |obstacle|
+      # Only draw if the obstacle is within screen bounds
+      next if obstacle.x >= Environment::SCREEN_WIDTH || obstacle.right_edge <= 0
+
+      # Calculate visible width (in case obstacle is partially off screen)
+      visible_width = [Environment::OBSTACLE_WIDTH, Environment::SCREEN_WIDTH - obstacle.x].min
+      next if visible_width <= 0
+
       # Draw top obstacle (from row 0 down for top_height rows)
       obstacle.top_height.times do |i|
         @window.setpos(i, obstacle.x)
-        @window.addstr(obstacle.to_s)
+        @window.addstr('#' * visible_width)
       end
 
       # Draw bottom obstacle (from just above ground line, extending upward)
       obstacle.bottom_height.times do |i|
         row = Environment::GROUND_VISUAL_LEVEL - i - 1
         @window.setpos(row, obstacle.x)
-        @window.addstr(obstacle.to_s)
+        @window.addstr('#' * visible_width)
       end
     end
 
     # Draw bird (on top of everything)
-    @window.attron(Curses.color_pair(1))  # Reset to sky color for bird
+    @window.attron(Curses.color_pair(1))  # Sky color for bird
     @window.setpos(@bird.y, @bird.x)
     @window.addstr(@bird.to_s)
 

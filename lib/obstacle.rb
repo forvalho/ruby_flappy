@@ -1,13 +1,14 @@
 require_relative 'environment'
 
 class Obstacle
-  attr_reader :x, :top_height, :bottom_height
+  attr_reader :x, :top_height, :bottom_height, :spacing
   attr_writer :x
 
-  def initialize(x, top_height, bottom_height)
+  def initialize(x, top_height, bottom_height, spacing)
     @x = x
     @top_height = top_height
     @bottom_height = bottom_height
+    @spacing = spacing
   end
 
   def update
@@ -30,7 +31,8 @@ class Obstacle
 
     top_height = rand(min_height..max_height)
     bottom_height = available_height - top_height
+    spacing = rand(Environment::OBSTACLE_MIN_SPACING..Environment::OBSTACLE_MAX_SPACING)
 
-    Obstacle.new(x, top_height, bottom_height)
+    Obstacle.new(x, top_height, bottom_height, spacing)
   end
 end

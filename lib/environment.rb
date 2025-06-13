@@ -24,5 +24,6 @@ class Environment
   OBSTACLE_WIDTH = 6
   OBSTACLE_MIN_HEIGHT = 4
   OBSTACLE_GAP = 8
-  OBSTACLE_SPACING = 10  # Minimum space between obstacles
+  OBSTACLE_MIN_SPACING = 5  # Minimum space between obstacles
+  OBSTACLE_MAX_SPACING = 40  # Maximum space between obstacles
 end
