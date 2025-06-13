@@ -73,40 +73,53 @@ class Game
 
   def update_obstacles
     @obstacles.each(&:update)
-    @obstacles.reject! { |obs| obs.x < 0 }  # Remove obstacles that are off screen
+    @obstacles.reject! { |obs| obs.right_edge < 0 }  # Remove obstacles that are off screen
   end
 
   def maybe_add_obstacle
-    rightmost_x = @obstacles.map(&:x).max || -Float::INFINITY
-    if @obstacles.empty? || (Environment::SCREEN_WIDTH - rightmost_x >= rand(3..10))
-      @obstacles << Obstacle.new(Environment::SCREEN_WIDTH, Environment::CEILING_LEVEL)
-      @obstacles << Obstacle.new(Environment::SCREEN_WIDTH, Environment::GROUND_LEVEL)
+    rightmost_x = @obstacles.map(&:right_edge).max || -Float::INFINITY
+    if @obstacles.empty? || (Environment::SCREEN_WIDTH - rightmost_x >= Environment::OBSTACLE_SPACING)
+      @obstacles << Obstacle.create_pair(Environment::SCREEN_WIDTH)
     end
   end
 
   def draw
     @window.clear
 
-    # Draw sky (light blue background)
+    # Draw sky (light blue background) from row 0 to just above the ground
     @window.attron(Curses.color_pair(1))
-    @window.setpos(0, 0)
-    @window.addstr(' ' * (Environment::SCREEN_WIDTH * Environment::GROUND_LEVEL))
+    (0...Environment::GROUND_VISUAL_LEVEL).each do |row|
+      @window.setpos(row, 0)
+      @window.addstr(' ' * Environment::SCREEN_WIDTH)
+    end
 
     # Draw ground (green)
     @window.attron(Curses.color_pair(2))
-    @window.setpos(Environment::GROUND_LEVEL, 0)
+    @window.setpos(Environment::GROUND_VISUAL_LEVEL, 0)
     @window.addstr(' ' * Environment::SCREEN_WIDTH)
 
     # Draw below ground (brown)
     @window.attron(Curses.color_pair(3))
-    @window.setpos(Environment::GROUND_LEVEL + 1, 0)
-    @window.addstr(' ' * (Environment::SCREEN_WIDTH * (Environment::SCREEN_HEIGHT - Environment::GROUND_LEVEL - 1)))
+    ((Environment::GROUND_VISUAL_LEVEL + 1)...Environment::SCREEN_HEIGHT).each do |row|
+      @window.setpos(row, 0)
+      @window.addstr(' ' * Environment::SCREEN_WIDTH)
+    end
 
     # Draw obstacles
     @window.attron(Curses.color_pair(2))  # Use green for obstacles
     @obstacles.each do |obstacle|
-      @window.setpos(obstacle.y, obstacle.x)
-      @window.addstr(obstacle.to_s)
+      # Draw top obstacle (from row 0 down for top_height rows)
+      obstacle.top_height.times do |i|
+        @window.setpos(i, obstacle.x)
+        @window.addstr(obstacle.to_s)
+      end
+
+      # Draw bottom obstacle (from just above ground line, extending upward)
+      obstacle.bottom_height.times do |i|
+        row = Environment::GROUND_VISUAL_LEVEL - i - 1
+        @window.setpos(row, obstacle.x)
+        @window.addstr(obstacle.to_s)
+      end
     end
 
     # Draw bird (on top of everything)

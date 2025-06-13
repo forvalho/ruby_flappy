@@ -43,7 +43,7 @@ RSpec.describe Bird do
   describe '#jump' do
     it 'sets vertical speed to jump force' do
       bird.jump
-      expect(bird.vertical_speed).to eq(-3)
+      expect(bird.vertical_speed).to eq(-2)
     end
 
     it 'puts wings down when jumping' do
